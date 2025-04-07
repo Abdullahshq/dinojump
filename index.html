@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Jumping Dinosaur Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #f0f0f0;
+        }
+        #gameCanvas {
+            margin-top: 50px;
+            background: white;
+            border: 2px solid #333;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+        }
+        #score {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            font-family: Arial;
+        }
+        #gameOver {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-family: Arial;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <div id="gameOver">Game Over!</div>
+    <div class="container">
+        <canvas id="gameCanvas" width="800" height="300"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const gameOverElement = document.getElementById('gameOver');
+
+        let score = 0;
+        let isJumping = false;
+        let gravity = 0.9;
+        let dino = {
+            x: 100,
+            y: 200,
+            width: 30,
+            height: 50,
+            velocity: 0
+        };
+
+        let obstacles = [];
+        let gameRunning = true;
+
+        function drawDino() {
+            ctx.fillStyle = '#333';
+            ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
+        }
+
+        function jump() {
+            if (!isJumping) {
+                dino.velocity = -15;
+                isJumping = true;
+            }
+        }
+
+        function createObstacle() {
+            return {
+                x: canvas.width,
+                y: 220,
+                width: 20,
+                height: 30,
+                speed: 5
+            };
+        }
+
+        function drawObstacles() {
+            ctx.fillStyle = '#666';
+            obstacles.forEach(obstacle => {
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            });
+        }
+
+        function checkCollision(obstacle) {
+            return dino.x < obstacle.x + obstacle.width &&
+                   dino.x + dino.width > obstacle.x &&
+                   dino.y < obstacle.y + obstacle.height &&
+                   dino.y + dino.height > obstacle.y;
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Dino physics
+            dino.y += dino.velocity;
+            dino.velocity += gravity;
+            
+            if (dino.y >= 200) {
+                dino.y = 200;
+                isJumping = false;
+            }
+
+            // Obstacle logic
+            if (Math.random() < 0.02) {
+                obstacles.push(createObstacle());
+            }
+
+            obstacles.forEach((obstacle, index) => {
+                obstacle.x -= obstacle.speed;
+                if (checkCollision(obstacle)) {
+                    gameOver();
+                }
+                if (obstacle.x + obstacle.width < 0) {
+                    obstacles.splice(index, 1);
+                    score += 10;
+                    scoreElement.textContent = `Score: ${score}`;
+                }
+            });
+
+            drawDino();
+            drawObstacles();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            gameOverElement.style.display = 'block';
+        }
+
+        // Controls
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                if (!gameRunning) {
+                    resetGame();
+                }
+                jump();
+            }
+        });
+
+        function resetGame() {
+            score = 0;
+            obstacles = [];
+            gameRunning = true;
+            dino.y = 200;
+            gameOverElement.style.display = 'none';
+            scoreElement.textContent = `Score: ${score}`;
+            gameLoop();
+        }
+
+        // Start game
+        gameLoop();
+    </script>
+</body>
+</html>
