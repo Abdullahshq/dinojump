@@ -7,6 +7,7 @@
             margin: 0;
             overflow: hidden;
             background: #f0f0f0;
+            font-family: Arial, sans-serif;
         }
         #gameCanvas {
             margin-top: 50px;
@@ -34,6 +35,43 @@
             font-family: Arial;
             color: red;
         }
+        #highScores {
+            display: none;
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            z-index: 100;
+        }
+        #highScores h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        #scoresList {
+            list-style-type: none;
+            padding: 0;
+        }
+        #scoresList li {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 10px 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -41,6 +79,13 @@
     <div id="gameOver">Game Over!</div>
     <div class="container">
         <canvas id="gameCanvas" width="800" height="300"></canvas>
+    </div>
+    
+    <div id="highScores">
+        <h2>High Scores</h2>
+        <ul id="scoresList"></ul>
+        <button id="closeScores" class="button">Close</button>
+        <button id="clearScores" class="button">Clear All Scores</button>
     </div>
 
     <script>
@@ -138,6 +183,11 @@
         function gameOver() {
             gameRunning = false;
             gameOverElement.style.display = 'block';
+            // Save score to local storage
+            if (score > 0) {
+                saveScore(score);
+                console.log('Score saved to local storage');
+            }
         }
 
         // Controls
@@ -160,6 +210,75 @@
             gameLoop();
         }
 
+        // High scores functionality (local storage implementation)
+        const highScoresElement = document.getElementById('highScores');
+        const scoresListElement = document.getElementById('scoresList');
+        const closeScoresButton = document.getElementById('closeScores');
+        const clearScoresButton = document.getElementById('clearScores');
+        
+        // Local storage for high scores
+        function saveScore(score) {
+            const scores = getScores();
+            scores.push({
+                score: score,
+                date: new Date().toISOString()
+            });
+            // Sort scores in descending order
+            scores.sort((a, b) => b.score - a.score);
+            // Keep only top 10 scores
+            const topScores = scores.slice(0, 10);
+            localStorage.setItem('dinoHighScores', JSON.stringify(topScores));
+        }
+        
+        function getScores() {
+            const scores = localStorage.getItem('dinoHighScores');
+            return scores ? JSON.parse(scores) : [];
+        }
+        
+        function clearAllScores() {
+            localStorage.removeItem('dinoHighScores');
+            return [];
+        }
+        
+        function showHighScores() {
+            // Get high scores from local storage
+            const scores = getScores();
+            
+            // Clear previous scores
+            scoresListElement.innerHTML = '';
+            
+            if (scores.length === 0) {
+                scoresListElement.innerHTML = '<li>No scores available</li>';
+            } else {
+                // Add scores to the list
+                scores.forEach((scoreData, index) => {
+                    const listItem = document.createElement('li');
+                    const scoreDate = new Date(scoreData.date).toLocaleDateString();
+                    listItem.textContent = `${index + 1}. Score: ${scoreData.score} - ${scoreDate}`;
+                    scoresListElement.appendChild(listItem);
+                });
+            }
+            
+            // Show high scores panel
+            highScoresElement.style.display = 'block';
+        }
+        
+        // Add event listener to game over to show high scores after a delay
+        gameOverElement.addEventListener('click', () => {
+            showHighScores();
+        });
+        
+        // Close high scores panel
+        closeScoresButton.addEventListener('click', () => {
+            highScoresElement.style.display = 'none';
+        });
+        
+        // Clear all scores
+        clearScoresButton.addEventListener('click', () => {
+            clearAllScores();
+            scoresListElement.innerHTML = '<li>No scores available</li>';
+        });
+        
         // Start game
         gameLoop();
     </script>

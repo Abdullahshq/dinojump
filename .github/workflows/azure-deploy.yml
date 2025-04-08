@@ -1,0 +1,79 @@
+name: Deploy to Azure Web App
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+  configure:
+    name: Configure
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      # Setup PHP runtime
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, xml, zip
+          coverage: none
+      
+      # No environment variables needed
+      - name: Setup environment
+        run: |
+          echo "# No database configuration needed" > .env
+      
+      # Create a web.config for Azure with PHP support
+      - name: Create web.config
+        run: |
+          echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+          <configuration>
+            <system.webServer>
+              <defaultDocument>
+                <files>
+                  <clear />
+                  <add value=\"index.html\" />
+                  <add value=\"index.php\" />
+                </files>
+              </defaultDocument>
+              <handlers>
+                <add name=\"PHP\" path=\"*.php\" verb=\"*\" modules=\"FastCgiModule\" scriptProcessor=\"D:\\Program Files\\PHP\\v8.1\\php-cgi.exe\" resourceType=\"Either\" />
+              </handlers>
+              <rewrite>
+                <rules>
+                  <rule name=\"StaticContent\">
+                    <match url=\"(.*)\\.(.*)\" />
+                    <action type=\"Rewrite\" url=\"{R:0}\" />
+                  </rule>
+                </rules>
+              </rewrite>
+            </system.webServer>
+          </configuration>" > web.config
+
+  deploy:
+    name: Deploy
+    needs: configure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      # Deploy directly to Azure Web App
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: .
