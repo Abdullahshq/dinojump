@@ -18,12 +18,18 @@
             display: flex;
             justify-content: center;
         }
-        #score {
+        #score, #highScoreDisplay {
             position: absolute;
-            top: 20px;
-            right: 20px;
             font-size: 24px;
             font-family: Arial;
+        }
+        #score {
+            top: 20px;
+            right: 20px;
+        }
+        #highScoreDisplay {
+            top: 20px;
+            left: 20px;
         }
         #gameOver {
             display: none;
@@ -76,6 +82,7 @@
 </head>
 <body>
     <div id="score">Score: 0</div>
+    <div id="highScoreDisplay">High Score: 0</div>
     <div id="gameOver">Game Over!</div>
     <div class="container">
         <canvas id="gameCanvas" width="800" height="300"></canvas>
@@ -92,9 +99,11 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('highScoreDisplay');
         const gameOverElement = document.getElementById('gameOver');
 
         let score = 0;
+        let highScore = 0;
         let isJumping = false;
         let gravity = 0.9;
         let dino = {
@@ -107,6 +116,8 @@
 
         let obstacles = [];
         let gameRunning = true;
+        let lastObstacleTime = 0;
+        let minObstacleDistance = 60; // Minimum frames between obstacles (reduced to match Chrome dino game)
 
         function drawDino() {
             ctx.fillStyle = '#333';
@@ -158,9 +169,11 @@
                 isJumping = false;
             }
 
-            // Obstacle logic
-            if (Math.random() < 0.02) {
+            // Obstacle logic - adjusted to match Chrome dinosaur game spacing
+            lastObstacleTime++;
+            if (lastObstacleTime > minObstacleDistance && Math.random() < 0.03) {
                 obstacles.push(createObstacle());
+                lastObstacleTime = 0;
             }
 
             obstacles.forEach((obstacle, index) => {
@@ -205,6 +218,7 @@
             obstacles = [];
             gameRunning = true;
             dino.y = 200;
+            lastObstacleTime = 0;
             gameOverElement.style.display = 'none';
             scoreElement.textContent = `Score: ${score}`;
             gameLoop();
@@ -228,11 +242,21 @@
             // Keep only top 10 scores
             const topScores = scores.slice(0, 10);
             localStorage.setItem('dinoHighScores', JSON.stringify(topScores));
+            
+            // Update high score if needed
+            if (scores.length > 0 && scores[0].score > highScore) {
+                highScore = scores[0].score;
+                updateHighScoreDisplay();
+            }
         }
         
         function getScores() {
             const scores = localStorage.getItem('dinoHighScores');
             return scores ? JSON.parse(scores) : [];
+        }
+        
+        function updateHighScoreDisplay() {
+            highScoreElement.textContent = `High Score: ${highScore}`;
         }
         
         function clearAllScores() {
@@ -279,7 +303,17 @@
             scoresListElement.innerHTML = '<li>No scores available</li>';
         });
         
-        // Start game
+        // Initialize high score from localStorage
+        function initializeHighScore() {
+            const scores = getScores();
+            if (scores.length > 0) {
+                highScore = scores[0].score;
+                updateHighScoreDisplay();
+            }
+        }
+        
+        // Initialize and start game
+        initializeHighScore();
         gameLoop();
     </script>
 </body>
